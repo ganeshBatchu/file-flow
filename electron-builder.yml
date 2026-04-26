@@ -1,0 +1,117 @@
+appId: com.fileflow.app
+productName: FileFlow
+copyright: Copyright © 2026
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - out/**/*
+  - resources/**/*
+  - package.json
+
+# afterSign hook runs scripts/notarize.ts after the bundle is signed.
+# Skips MAS targets (App Store handles its own scan) and skips when
+# the APPLE_* env vars aren't set (so local smoke builds don't fail).
+# See scripts/notarize.ts for the full rationale.
+afterSign: scripts/notarize.ts
+
+# ───────────────────────────────────────────────────────────────────────
+#  Apple-platform signing & sandbox configuration
+# ───────────────────────────────────────────────────────────────────────
+#
+# We ship two macOS targets:
+#
+#   • dmg  — direct distribution (unsandboxed; Developer-ID-signed,
+#            notarized; works for users who download from a website).
+#            Uses entitlements.mac.plist.
+#
+#   • mas  — Mac App Store. Sandboxed; signed with the 3rd Party Mac
+#            Developer Application certificate; receipt-validated by
+#            Apple. Uses entitlements.mas.plist + a separate inherit
+#            file for child processes (helper renderer, GPU, etc.).
+#
+# The privacy manifest (resources/PrivacyInfo.xcprivacy) is bundled
+# automatically because `resources/**/*` is in the `files` list above —
+# electron-builder copies it into Contents/Resources of the .app bundle,
+# which is where Apple's scanner looks for it.
+
+mac:
+  category: public.app-category.productivity
+  icon: resources/icon.png
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  # Unsandboxed direct-distribution target. Entitlements stay minimal —
+  # only the bits the hardened runtime needs (JIT, unsigned exec memory
+  # for V8) plus user-selected file access for parity with MAS code paths.
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.plist
+  # Usage strings shown in TCC consent dialogs ("FileFlow would like to
+  # access files in your Downloads folder"). MAS submission is rejected
+  # if these are missing for any folder we touch — Desktop / Downloads /
+  # Documents are the three FileFlow realistically interacts with on a
+  # default install. Add specific keys here rather than at submit time
+  # so direct-distribution users see the same explanations.
+  extendInfo:
+    NSDesktopFolderUsageDescription: "FileFlow needs access to your Desktop to organize files there when you add it to a watched directory."
+    NSDownloadsFolderUsageDescription: "FileFlow needs access to your Downloads folder to organize newly downloaded files into category subfolders."
+    NSDocumentsFolderUsageDescription: "FileFlow needs access to your Documents folder when you add it as a watched directory."
+    NSRemovableVolumesUsageDescription: "FileFlow needs access to external drives only when you explicitly add a folder on them as a watched directory."
+    LSMinimumSystemVersion: "11.0"
+    # ITSAppUsesNonExemptEncryption=false — declares we use no
+    # cryptography beyond OS-provided HTTPS / standard primitives,
+    # which spares the user an export-compliance form on every release.
+    ITSAppUsesNonExemptEncryption: false
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    # Mac App Store target. The 3rd Party Mac Developer Application
+    # certificate must be in the keychain; electron-builder picks it
+    # up automatically when target=mas. Submit the resulting .pkg via
+    # Transporter (or `xcrun altool --upload-app`).
+    - target: mas
+      arch: [universal]
+
+# Mac App Store-specific overrides. electron-builder applies these only
+# when the target is `mas` (not the dmg). Keeps direct-distribution
+# entitlements minimal while MAS gets the full sandbox + bookmarks set.
+mas:
+  category: public.app-category.productivity
+  icon: resources/icon.png
+  hardenedRuntime: true
+  entitlements: resources/entitlements.mas.plist
+  entitlementsInherit: resources/entitlements.mas.inherit.plist
+  # Apple won't accept a .pkg without provisioning info baked into the
+  # signed binary. Point at the file shipped by App Store Connect after
+  # you create the bundle ID. CI puts it at this path before invoking
+  # electron-builder; locally, a developer drops it in `build/`.
+  provisioningProfile: build/embedded.provisionprofile
+  extendInfo:
+    NSDesktopFolderUsageDescription: "FileFlow needs access to your Desktop to organize files there when you add it to a watched directory."
+    NSDownloadsFolderUsageDescription: "FileFlow needs access to your Downloads folder to organize newly downloaded files into category subfolders."
+    NSDocumentsFolderUsageDescription: "FileFlow needs access to your Documents folder when you add it as a watched directory."
+    NSRemovableVolumesUsageDescription: "FileFlow needs access to external drives only when you explicitly add a folder on them as a watched directory."
+    LSMinimumSystemVersion: "11.0"
+    ITSAppUsesNonExemptEncryption: false
+
+win:
+  icon: resources/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+linux:
+  icon: resources/icon.png
+  target:
+    - target: AppImage
+      arch: [x64]
+  category: Utility

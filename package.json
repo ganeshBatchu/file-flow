@@ -1,0 +1,82 @@
+{
+  "name": "fileflow",
+  "version": "1.0.0",
+  "description": "Cross-platform intelligent file organizer",
+  "main": "out/main/main.js",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:dmg": "npm run build && electron-builder --mac dmg",
+    "dist:mas": "npm run build && electron-builder --mac mas",
+    "dist:mac": "npm run build && electron-builder --mac dmg mas",
+    "postinstall": "tsx scripts/postinstall.ts"
+  },
+  "build": {
+    "appId": "com.fileflow.app",
+    "productName": "FileFlow",
+    "copyright": "Copyright © 2025",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "resources/fileflow-vision-helper"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] }
+      ],
+      "darkModeSupport": true
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    }
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "electron-log": "^5.1.2",
+    "exifr": "^7.1.3",
+    "js-yaml": "^4.1.0",
+    "lucide-react": "^0.344.0",
+    "pdf-parse": "^1.1.1",
+    "picomatch": "^3.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "unzipper": "^0.10.14",
+    "xml2js": "^0.6.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@electron/notarize": "^2.3.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.10.0",
+    "@types/pdf-parse": "^1.1.4",
+    "@types/picomatch": "^2.3.3",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/unzipper": "^0.10.9",
+    "@types/xml2js": "^0.4.14",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.17",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.1.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.2",
+    "vite": "^5.1.0"
+  }
+}

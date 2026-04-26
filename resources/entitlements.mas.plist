@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Mac App Store entitlements for the main FileFlow process.
+
+  These are the *minimum* set required for an offline file-organizer:
+  no networking, no microphone/camera, no AppleEvents, no JIT (V8 still
+  works under the hardened runtime via allow-jit + allow-unsigned-exec
+  below). Apple's reviewer will reject anything broader without
+  documented justification, so we keep the surface small.
+
+  WHY EACH KEY:
+
+    com.apple.security.app-sandbox
+        The single key that switches the macOS app sandbox on. Required
+        for every MAS submission. Without this the bundle is rejected
+        before review.
+
+    com.apple.security.files.user-selected.read-write
+        Lets us read and write any folder the user explicitly grants via
+        Powerbox (i.e. the system file/directory picker). This is the
+        ONLY way a sandboxed app gets at user files outside its container.
+        FileFlow's Settings flow opens dialog.showOpenDialog —
+        whichever directory the user picks lands here.
+
+    com.apple.security.files.bookmarks.app-scope
+        Lets the app *persist* the user's grant across launches. Without
+        this, the user would have to re-pick every watched folder every
+        time they open the app. The flow is:
+          1. dialog.showOpenDialog returns a security-scoped bookmark
+          2. We base64-encode and stash it in config
+          3. On next launch we call app.startAccessingSecurityScopedResource
+             with that bookmark to re-acquire access
+        See electron/bookmarks.ts for the runtime side.
+
+    com.apple.security.cs.allow-jit
+    com.apple.security.cs.allow-unsigned-executable-memory
+        Required by V8. Electron won't start under the hardened runtime
+        without these. They sound scary but they're standard for every
+        Electron MAS app — the hardened runtime is still enforced for
+        everything else (library validation, dyld injection, etc.).
+
+  WHAT'S DELIBERATELY OMITTED:
+
+    com.apple.security.network.client
+        FileFlow makes zero outbound HTTP/HTTPS calls. No telemetry, no
+        update checks, no remote config. Adding this would force us to
+        explain it during review. We don't need it.
+
+    com.apple.security.files.downloads.read-write
+    com.apple.security.assets.{music,movies,pictures}.*
+        Special-folder shortcuts that pre-grant access to specific user
+        folders without a Powerbox prompt. Tempting but a reviewer will
+        ask "why does a file organizer need automatic Downloads access?"
+        and we'd have to argue. The user-selected entitlement above
+        covers the same ground via an explicit prompt — better optics,
+        smaller threat surface.
+-->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+
+  <key>com.apple.security.files.bookmarks.app-scope</key>
+  <true/>
+
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+</dict>
+</plist>

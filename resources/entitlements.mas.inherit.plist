@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Inherit entitlements for child processes of the MAS build.
+
+  Electron spawns several helper processes for each window:
+
+    • FileFlow Helper (Renderer)  — the Chromium renderer
+    • FileFlow Helper (GPU)       — the GPU process
+    • FileFlow Helper (Plugin)    — anything that uses Pepper/PPAPI
+    • FileFlow Helper             — the generic helper
+
+  Apple requires each of these to be code-signed and to declare its own
+  entitlements. We give the helpers a STRICTLY SMALLER set than the
+  main process — only what they need to function — because reviewers
+  treat any unnecessary helper-process entitlement as a smell.
+
+  WHY EACH KEY:
+
+    com.apple.security.app-sandbox
+        Mandatory for every signed binary in a sandboxed bundle.
+
+    com.apple.security.inherit
+        Tells the OS "this child inherits its sandbox profile from the
+        parent." Without it, the helper would need a full re-declaration
+        of every file/network/IPC entitlement and Apple's auto-checks
+        would fail.
+
+    com.apple.security.cs.allow-jit
+    com.apple.security.cs.allow-unsigned-executable-memory
+        The Chromium renderer is V8 — same JIT rationale as the main
+        process. Apple's auto-validation knows this is expected for
+        Helper (Renderer) and waves it through.
+
+  WHAT'S DELIBERATELY OMITTED:
+
+    com.apple.security.files.user-selected.read-write
+    com.apple.security.files.bookmarks.app-scope
+        The renderer NEVER touches files directly — file ops go through
+        IPC to the main process, where they're path-allowed-checked
+        before any fs call. Granting the renderer file entitlements
+        would let a renderer-side compromise escape the IPC chokepoint.
+-->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+
+  <key>com.apple.security.inherit</key>
+  <true/>
+
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+</dict>
+</plist>

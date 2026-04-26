@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Direct-distribution entitlements (Developer-ID-signed .dmg).
+
+  This build is NOT sandboxed — `com.apple.security.app-sandbox` is
+  intentionally absent here, in contrast to entitlements.mas.plist.
+  Direct distribution gets full file-system access and only needs the
+  hardened-runtime exemptions Electron requires.
+
+  WHY EACH KEY:
+
+    com.apple.security.cs.allow-jit
+    com.apple.security.cs.allow-unsigned-executable-memory
+        V8 needs both. Without them Electron crashes at startup under
+        the hardened runtime.
+
+    com.apple.security.cs.disable-library-validation
+        Electron loads a few unsigned dylibs (notably ffmpeg) inside its
+        own framework. The hardened runtime blocks unsigned loads
+        unless this is set. NOT included in the MAS variant — Apple's
+        scanner rejects MAS apps that disable library validation.
+
+    com.apple.security.files.user-selected.read-write
+    com.apple.security.files.bookmarks.app-scope
+        Mirrored from the MAS entitlements so the same dialog +
+        bookmark code path works in both builds. Direct-distribution
+        users don't strictly need them (they have full FS access via
+        TCC) but using one code path everywhere reduces per-build
+        branching in main.ts.
+-->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+
+  <key>com.apple.security.files.bookmarks.app-scope</key>
+  <true/>
+</dict>
+</plist>
